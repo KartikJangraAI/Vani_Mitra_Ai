@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>वाणी मित्र AI - Kartik Jangra The Creator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1f4037 0%, #99f2c8 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        .phone-container {
+            width: 92%;
+            max-width: 360px;
+            height: 620px;
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 25px 20px;
+            box-sizing: border-box;
+        }
+
+        .creator-title {
+            font-size: 13px;
+            color: #2ecc71;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
+            text-align: center;
+            border-bottom: 1px solid rgba(46, 204, 113, 0.3);
+            padding-bottom: 5px;
+            width: 100%;
+        }
+
+        .status-container {
+            text-align: center;
+        }
+
+        .avatar {
+            width: 110px;
+            height: 110px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            box-shadow: 0 0 25px rgba(46, 204, 113, 0.4);
+            margin: 0 auto;
+        }
+
+        .bot-name {
+            font-size: 26px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #ffffff;
+        }
+
+        .call-status {
+            font-size: 15px;
+            color: #e0e0e0;
+            margin-top: 5px;
+            height: 25px;
+        }
+
+        .transcript-box {
+            width: 100%;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 15px;
+            overflow-y: auto;
+            text-align: center;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .action-btn {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .btn-call {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-hangup {
+            background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
+            color: white;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="creator-title">कार्तिक जांगड़ा - द क्रिएटर</div>
+
+        <div class="status-container">
+            <div class="avatar" id="botAvatar">🤖</div>
+            <div class="bot-name">वाणी मित्र AI</div>
+            <div id="callStatus" class="call-status">कॉल करने के लिए नीचे बटन दबाएं</div>
+        </div>
+
+        <div id="transcript" class="transcript-box">
+            "कॉल शुरू होने के बाद बातचीत यहाँ दिखाई देगी..."
+        </div>
+
+        <div>
+            <button id="callBtn" class="action-btn btn-call" onclick="startCall()">📞</button>
+            <button id="hangupBtn" class="action-btn btn-hangup" onclick="endCall()">🛑</button>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ यहाँ अपनी असली जेमिनी एपीआई की (API Key) डालें
+        const API_KEY = 'YOUR_GEMINI_API_KEY_HERE'; 
+
+        let recognition;
+        let isCalling = false;
+
+        // माइक और स्पीच इंजन सेटअप
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'hi-IN'; 
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                if(!isCalling) return;
+                const speechToText = event.results[0][0].transcript;
+                document.getElementById('transcript').innerHTML = `<b>आप:</b> ${speechToText}`;
+                document.getElementById('callStatus').innerText = "वाणी मित्र सोच रहा है...";
+                askGemini2(speechToText);
+            };
+
+            recognition.onerror = function(event) {
+                if (!isCalling) return;
+                console.log("माइक होल्ड पर है...");
+                document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए...";
+            };
+        }
+
+        // कॉल स्टार्ट करने का फंक्शन
+        function startCall() {
+            if(API_KEY === 'YOUR_GEMINI_API_KEY_HERE' || API_KEY === '') {
+                alert("कार्तिक भाई, पहले कोड में अपनी असली API KEY डालो!");
+                return;
+            }
+            
+            isCalling = true;
+            document.getElementById('botAvatar').innerHTML = "🤖";
+            document.getElementById('callBtn').style.display = 'none';
+            document.getElementById('hangupBtn').style.display = 'flex';
+            document.getElementById('callStatus').innerText = "कॉल कनेक्ट हो रही है...";
+            
+            // ऑडियो इंजन को पहले से एक्टिव करना
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+
+            setTimeout(() => {
+                if(!isCalling) return;
+                document.getElementById('callStatus').innerText = "कॉल कनेक्ट हो गई है";
+                document.getElementById('transcript').innerHTML = "<b>वाणी मित्र कनेक्ट हो रहा है...</b>";
+                
+                // जेमिनी से पहला हरियाणवी वेलकम मैसेज मांगना
+                askGemini2("Hello, say exactly in Haryanvi dialect: राम राम भाई! मैं हूँ थारा वाणी मित्र एआई। आज मैं थारी के मदद करूँ?");
+            }, 1200);
+        }
+
+        // कॉल काटने का फंक्शन
+        function endCall() {
+            isCalling = false;
+            document.getElementById('botAvatar').innerHTML = "🤖";
+            document.getElementById('callBtn').style.display = 'flex';
+            document.getElementById('hangupBtn').style.display = 'none';
+            document.getElementById('callStatus').innerText = "कॉल कट गई है";
+            document.getElementById('transcript').innerHTML = `"कॉल समाप्त"`;
+            window.speechSynthesis.cancel();
+            if(recognition) try { recognition.stop(); } catch(e) {}
+        }
+
+        // जेमिनी एआई से कनेक्ट करने का लाइव फंक्शन
+        async function askGemini2(promptText) {
+            if (!isCalling) return;
+
+            // थारा स्पेशल देसी सिस्टम प्रॉम्ट
+            const systemInstruction = "You are Vani Mitra AI, a helpful assistant for rural Indian people and farmers. Speak in a friendly, respectful tone using a blend of simple Hindi and Haryanvi dialect. Keep answers very short, practical, and easy to understand over a phone call. Avoid hard words. Respond in Hindi text but use Haryanvi words like 'थारा', 'के', 'करूँ', 'यो', 'सै'.";
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    })
+                });
+
+                if (!response.ok) throw new Error("API_ERROR");
+                const data = await response.json();
+                
+                const aiText = data.candidates[0].content.parts[0].text;
+                
+                document.getElementById('transcript').innerHTML += `<br><br><b>वाणी मित्र:</b> ${aiText}`;
+                document.getElementById('callStatus').innerText = "वाणी मित्र बोल रहा है...";
+
+                speak(aiText);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('callStatus').innerText = "कनेक्शन धीमा है भाई, दोबारा बोलो...";
+                
+                // एरर आने पर 2 सेकंड बाद माइक वापस चालू ताकि बात न टूटे
+                setTimeout(() => {
+                    if (isCalling) {
+                        document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए...";
+                        try { recognition.start(); } catch(e) {}
+                    }
+                }, 2000);
+            }
+        }
+
+        // आवाज़ सुनाने का फंक्शन
+        function speak(text) {
+            if (!isCalling) return;
+            window.speechSynthesis.cancel(); 
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'hi-IN'; 
+            
+            const voices = window.speechSynthesis.getVoices();
+            const hindiVoice = voices.find(voice => voice.lang === 'hi-IN' || voice.lang === 'hi_IN');
+            if (hindiVoice) utterance.voice = hindiVoice;
+
+            // जब रोबोट बोलना खत्म करेगा, तब यूजर का माइक अपने आप खुल जाएगा
+            utterance.onend = function() {
+                if (isCalling) {
+                    document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए...";
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
+
