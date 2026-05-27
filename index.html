@@ -166,7 +166,7 @@
             recognition.onerror = function(event) {
                 if (!isCalling) return;
                 console.log("माइक होल्ड पर है...");
-                document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए...";
+                document.getElementById('callStatus').innerText = "आपकी बारी - बोलie...";
             };
         }
 
@@ -216,7 +216,8 @@
             // थारा स्पेशल देसी सिस्टम प्रॉम्ट
             const systemInstruction = "You are Vani Mitra AI, a helpful assistant for rural Indian people and farmers. Speak in a friendly, respectful tone using a blend of simple Hindi and Haryanvi dialect. Keep answers very short, practical, and easy to understand over a phone call. Avoid hard words. Respond in Hindi text but use Haryanvi words like 'थारा', 'के', 'करूँ', 'यो', 'सै'.";
             
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+            // 🚀 मॉडल नाम बदलकर यहाँ 'gemini-3-flash-preview' कर दिया गया है
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
 
             try {
                 const response = await fetch(url, {
@@ -254,26 +255,4 @@
 
         // आवाज़ सुनाने का फंक्शन
         function speak(text) {
-            if (!isCalling) return;
-            window.speechSynthesis.cancel(); 
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'hi-IN'; 
-            
-            const voices = window.speechSynthesis.getVoices();
-            const hindiVoice = voices.find(voice => voice.lang === 'hi-IN' || voice.lang === 'hi_IN');
-            if (hindiVoice) utterance.voice = hindiVoice;
-
-            // जब रोबोट बोलना खत्म करेगा, तब यूजर का माइक अपने आप खुल जाएगा
-            utterance.onend = function() {
-                if (isCalling) {
-                    document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए...";
-                    try { recognition.start(); } catch(e) {}
-                }
-            };
-            window.speechSynthesis.speak(utterance);
-        }
-    </script>
-</body>
-</html>
-
+            if (!isCalling)
