@@ -93,10 +93,9 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        /* 💬 नया टाइपिंग बॉक्स और बटन का स्टाइल */
         .input-container {
             width: 100%;
-            display: none; /* यह सिर्फ कॉल शुरू होने पर दिखेगा */
+            display: none;
             gap: 8px;
             margin-top: 5px;
         }
@@ -186,13 +185,12 @@
     </div>
 
     <script>
-        // ⚠️ यहाँ अपनी असली जेमिनी एपीआई की (API Key) डालें
+        // थारी एक्टिवेटिड एपीआई की
         const API_KEY = 'AIzaSyCH8-3eRbedACYMzZKoA3Vu9LcV7ldgEf0'; 
 
         let recognition;
         let isCalling = false;
 
-        // माइक और स्पीच इंजन सेटअप
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
@@ -215,7 +213,6 @@
             };
         }
 
-        // कॉल स्टार्ट करने का फंक्शन
         function startCall() {
             if(API_KEY === 'YOUR_GEMINI_API_KEY_HERE' || API_KEY === '') {
                 alert("कार्तिक भाई, पहले कोड में अपनी असली API KEY डालो!");
@@ -226,11 +223,14 @@
             document.getElementById('botAvatar').innerHTML = "🤖";
             document.getElementById('callBtn').style.display = 'none';
             document.getElementById('hangupBtn').style.display = 'flex';
-            document.getElementById('inputContainer').style.display = 'flex'; // टाइपिंग बॉक्स दिखाएं
+            document.getElementById('inputContainer').style.display = 'flex';
             document.getElementById('callStatus').innerText = "कॉल कनेक्ट हो रही है...";
             
+            // पुराने सिंटेक्स एरर को यहाँ ठीक कर दिया है
             window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+            try {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+            } catch(e) { console.log(e); }
 
             setTimeout(() => {
                 if(!isCalling) return;
@@ -241,13 +241,12 @@
             }, 1200);
         }
 
-        // कॉल काटने का फंक्शन
         function endCall() {
             isCalling = false;
             document.getElementById('botAvatar').innerHTML = "🤖";
             document.getElementById('callBtn').style.display = 'flex';
             document.getElementById('hangupBtn').style.display = 'none';
-            document.getElementById('inputContainer').style.display = 'none'; // टाइपिंग बॉक्स छुपाएं
+            document.getElementById('inputContainer').style.display = 'none';
             document.getElementById('callStatus').innerText = "कॉल कट गई है";
             document.getElementById('transcript').innerHTML = `"कॉल समाप्त"`;
             document.getElementById('textInput').value = '';
@@ -255,7 +254,6 @@
             if(recognition) try { recognition.stop(); } catch(e) {}
         }
 
-        // 💬 लिखकर मैसेज भेजने का नया फंक्शन
         function sendTextMessage() {
             if (!isCalling) return;
             const inputField = document.getElementById('textInput');
@@ -263,29 +261,27 @@
             
             if (text === '') return;
 
-            // माइक को रोकें ताकि टाइपिंग के समय डिस्टर्ब न हो
             if(recognition) try { recognition.stop(); } catch(e) {}
 
             document.getElementById('transcript').innerHTML = `<b>आप:</b> ${text}`;
             document.getElementById('callStatus').innerText = "वाणी मित्र सोच रहा है...";
             
-            inputField.value = ''; // इनपुट बॉक्स खाली करें
+            inputField.value = '';
             askGemini2(text);
         }
 
-        // एंटर बटन दबाने पर मैसेज भेजने के लिए
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendTextMessage();
             }
         }
 
-        // जेमिनी एआई से कनेक्ट करने का लाइव फंक्शन
         async function askGemini2(promptText) {
             if (!isCalling) return;
 
             const systemInstruction = "You are Vani Mitra AI, a helpful assistant for rural Indian people and farmers. Speak in a friendly, respectful tone using a blend of simple Hindi and Haryanvi dialect. Keep answers very short, practical, and easy to understand over a phone call. Avoid hard words. Respond in Hindi text but use Haryanvi words like 'थारा', 'के', 'करूँ', 'यो', 'सै'.";
             
+            // जेमिनी 3 का सही यूआरएल फॉर्मेट
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
 
             try {
@@ -293,14 +289,29 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }] }],
-                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                        contents: [{ 
+                            role: "user",
+                            parts: [{ text: promptText }] 
+                        }],
+                        systemInstruction: { 
+                            parts: [{ text: systemInstruction }] 
+                        }
                     })
                 });
 
-                if (!response.ok) throw new Error("API_ERROR");
+                // 🔴 अगर सर्वर से कोई गड़बड़ आती है, तो यहाँ पकड़ी जाएगी
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errMsg = errorData.error?.message || `HTTP Status ${response.status}`;
+                    throw new Error(errMsg);
+                }
+
                 const data = await response.json();
                 
+                if (!data.candidates || data.candidates.length === 0) {
+                    throw new Error("गूगल से कोई जवाब नहीं मिला (Empty Response)");
+                }
+
                 const aiText = data.candidates[0].content.parts[0].text;
                 
                 document.getElementById('transcript').innerHTML += `<br><br><b>वाणी मित्र:</b> ${aiText}`;
@@ -310,18 +321,19 @@
 
             } catch (error) {
                 console.error(error);
-                document.getElementById('callStatus').innerText = "कनेक्शन धीमा है भाई, दोबारा बोलो...";
+                // 📝 थारे चैट बॉक्स में ही साफ़ अक्षरों में एरर का कारण दिखाई देगा
+                document.getElementById('transcript').innerHTML += `<br><br><span style="color: #ff4d4d; font-weight: bold;">⚠️ एरर आया भाई: ${error.message}</span>`;
+                document.getElementById('callStatus').innerText = "कनेक्शन या की (Key) में गड़बड़ है...";
                 
                 setTimeout(() => {
                     if (isCalling) {
                         document.getElementById('callStatus').innerText = "आपकी बारी - बोलिए या लिखिए...";
                         try { recognition.start(); } catch(e) {}
                     }
-                }, 2000);
+                }, 3000);
             }
         }
 
-        // आवाज़ सुनाने का फंक्शन
         function speak(text) {
             if (!isCalling) return;
             window.speechSynthesis.cancel(); 
